@@ -1,0 +1,777 @@
+{
+  "info": {
+    "_postman_id": "5c87c155-e943-43ef-bb51-483a774ce2ff",
+    "name": "TP Postman - API DummyJSON",
+    "description": "Collection du TP Postman : tests de l'API de démonstration DummyJSON (https://dummyjson.com).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Test commun à toutes les requêtes de la collection",
+          "pm.test(\"La réponse est au format JSON\", function () {",
+          "    pm.response.to.have.header(\"Content-Type\");",
+          "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Produits - Lecture (GET)",
+      "description": "Récupération des produits : liste paginée, détail par id et recherche.",
+      "item": [
+        {
+          "name": "Lister les produits (pagination)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const liste = pm.response.json();",
+                  "",
+                  "pm.test(\"La réponse contient un tableau products\", function () {",
+                  "    pm.expect(liste.products).to.be.an(\"array\");",
+                  "});",
+                  "",
+                  "pm.test(\"Le nombre de produits respecte le limit\", function () {",
+                  "    pm.expect(liste.products.length).to.be.at.most(parseInt(pm.environment.get(\"limit\")));",
+                  "    pm.expect(liste.limit).to.eql(parseInt(pm.environment.get(\"limit\")));",
+                  "});",
+                  "",
+                  "pm.test(\"Seuls les champs demandés sont renvoyés (select)\", function () {",
+                  "    pm.expect(liste.products[0]).to.have.all.keys(\"id\", \"title\", \"price\", \"category\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products?limit={{limit}}&skip=0&select=title,price,category",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "key": "skip",
+                  "value": "0"
+                },
+                {
+                  "key": "select",
+                  "value": "title,price,category"
+                }
+              ]
+            },
+            "description": "Liste des produits avec pagination (limit/skip) et sélection de quelques champs seulement."
+          },
+          "response": []
+        },
+        {
+          "name": "Récupérer un produit par id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const produit = pm.response.json();",
+                  "",
+                  "pm.test(\"L'id renvoyé correspond à product_id\", function () {",
+                  "    pm.expect(produit.id).to.eql(parseInt(pm.environment.get(\"product_id\")));",
+                  "});",
+                  "",
+                  "pm.test(\"Le produit a les champs principaux\", function () {",
+                  "    pm.expect(produit).to.include.keys(\"title\", \"price\", \"category\", \"stock\");",
+                  "    pm.expect(produit.price).to.be.a(\"number\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Détail d'un seul produit. L'id vient de la variable d'environnement product_id."
+          },
+          "response": []
+        },
+        {
+          "name": "Rechercher des produits",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"La recherche renvoie au moins un résultat\", function () {",
+                  "    const liste = pm.response.json();",
+                  "    pm.expect(liste.total).to.be.above(0);",
+                  "    pm.expect(liste.products.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/search?q=phone",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "phone"
+                }
+              ]
+            },
+            "description": "Recherche plein texte avec le paramètre q."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Produits - Écriture (POST / PUT / PATCH / DELETE)",
+      "description": "Création, modification et suppression. Attention : DummyJSON simule ces opérations, rien n'est vraiment enregistré sur le serveur.",
+      "item": [
+        {
+          "name": "Ajouter un produit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const nouveau = pm.response.json();",
+                  "",
+                  "pm.test(\"Le produit renvoyé contient les valeurs envoyées\", function () {",
+                  "    const envoye = JSON.parse(pm.request.body.raw);",
+                  "    pm.expect(nouveau.title).to.eql(envoye.title);",
+                  "    pm.expect(nouveau.price).to.eql(envoye.price);",
+                  "});",
+                  "",
+                  "pm.test(\"Un id a été généré\", function () {",
+                  "    pm.expect(nouveau.id).to.be.a(\"number\");",
+                  "});",
+                  "",
+                  "pm.environment.set(\"new_product_id\", nouveau.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/add",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "add"
+              ]
+            },
+            "description": "Création d'un produit (corps JSON). L'id renvoyé est stocké dans new_product_id.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Clavier mécanique TP\",\n  \"description\": \"Produit ajouté pendant le TP Postman\",\n  \"price\": 49.99,\n  \"category\": \"laptops\",\n  \"brand\": \"TestBrand\",\n  \"stock\": 20\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Modifier un produit (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Le titre et le prix ont été mis à jour\", function () {",
+                  "    const p = pm.response.json();",
+                  "    pm.expect(p.title).to.eql(\"iPhone modifié (PUT)\");",
+                  "    pm.expect(p.price).to.eql(899);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Mise à jour avec PUT.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"iPhone modifié (PUT)\",\n  \"price\": 899\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Modifier partiellement un produit (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Le stock vaut 5 et les autres champs sont conservés\", function () {",
+                  "    const p = pm.response.json();",
+                  "    pm.expect(p.stock).to.eql(5);",
+                  "    pm.expect(p.title).to.be.a(\"string\").and.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Mise à jour partielle : seul le stock est envoyé.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Supprimer un produit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Le produit est marqué comme supprimé\", function () {",
+                  "    const p = pm.response.json();",
+                  "    pm.expect(p.isDeleted).to.be.true;",
+                  "    pm.expect(p).to.have.property(\"deletedOn\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "{{product_id}}"
+              ]
+            },
+            "description": "Suppression (simulée) du produit."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Authentification",
+      "description": "Connexion avec un utilisateur de test, récupération du token puis appel d'une route protégée.",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const res = pm.response.json();",
+                  "",
+                  "pm.test(\"Un accessToken est renvoyé\", function () {",
+                  "    pm.expect(res.accessToken).to.be.a(\"string\").and.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test(\"Le username correspond\", function () {",
+                  "    pm.expect(res.username).to.eql(pm.environment.get(\"username\"));",
+                  "});",
+                  "",
+                  "// on garde le token pour les requêtes suivantes",
+                  "pm.environment.set(\"access_token\", res.accessToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Le token renvoyé est enregistré automatiquement dans access_token.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"expiresInMins\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Utilisateur connecté (route protégée)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"C'est bien l'utilisateur connecté\", function () {",
+                  "    pm.expect(pm.response.json().username).to.eql(pm.environment.get(\"username\"));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Auth de type Bearer Token avec {{access_token}}. Lancer le Login avant.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Cas d'erreur",
+      "description": "Requêtes faites exprès pour obtenir des codes d'erreur et vérifier que l'API répond correctement.",
+      "item": [
+        {
+          "name": "Produit inexistant (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 404 Not Found\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Un message d'erreur est renvoyé\", function () {",
+                  "    pm.expect(pm.response.json().message).to.include(\"not found\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/99999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "99999"
+              ]
+            },
+            "description": "Id qui n'existe pas."
+          },
+          "response": []
+        },
+        {
+          "name": "Login avec mauvais mot de passe (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Le message indique des identifiants invalides\", function () {",
+                  "    pm.expect(pm.response.json().message).to.match(/invalid/i);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Mot de passe incorrect.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"mauvais_mdp\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Route protégée sans token (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Accès refusé sans token (401)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Même route que /auth/me mais sans Authorization.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Exercices d'application",
+      "description": "Les 3 exercices de la partie 12 du TP.",
+      "item": [
+        {
+          "name": "Exercice 1 - Produits de la catégorie smartphones",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const smartphones = pm.response.json();",
+                  "",
+                  "pm.test(\"Au moins un produit est renvoyé\", function () {",
+                  "    pm.expect(smartphones.products.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test(\"Tous les produits sont de la catégorie demandée\", function () {",
+                  "    const cat = pm.environment.get(\"category\");",
+                  "    smartphones.products.forEach(function (p) {",
+                  "        pm.expect(p.category).to.eql(cat);",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log(\"Nombre de smartphones : \" + smartphones.total);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/category/{{category}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "category",
+                "{{category}}"
+              ]
+            },
+            "description": "Filtrage avec l'endpoint dédié /products/category/{nom}."
+          },
+          "response": []
+        },
+        {
+          "name": "Exercice 2 - Ajouter un utilisateur",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const user = pm.response.json();",
+                  "",
+                  "pm.test(\"firstName, lastName et age sont bien renvoyés\", function () {",
+                  "    pm.expect(user.firstName).to.eql(pm.environment.get(\"user_firstname\"));",
+                  "    pm.expect(user.lastName).to.eql(pm.environment.get(\"user_lastname\"));",
+                  "    pm.expect(user.age).to.eql(parseInt(pm.environment.get(\"user_age\")));",
+                  "});",
+                  "",
+                  "pm.test(\"L'utilisateur a reçu un id\", function () {",
+                  "    pm.expect(user).to.have.property(\"id\");",
+                  "});",
+                  "",
+                  "pm.environment.set(\"new_user_id\", user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/add",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "add"
+              ]
+            },
+            "description": "Ajout d'un utilisateur avec firstName, lastName et age (valeurs dans l'environnement).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"{{user_firstname}}\",\n  \"lastName\": \"{{user_lastname}}\",\n  \"age\": {{user_age}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Exercice 3 - Temps de réponse inférieur à 500 ms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Code 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Temps de réponse inférieur à 500 ms\", function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(500);",
+                  "});",
+                  "",
+                  "console.log(\"Temps de réponse : \" + pm.response.responseTime + \" ms\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/products/category/{{category}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "products",
+                "category",
+                "{{category}}"
+              ]
+            },
+            "description": "Même requête que l'exercice 1, avec un test sur le temps de réponse."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
